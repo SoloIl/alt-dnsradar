@@ -2,25 +2,16 @@ package main
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net"
 	"time"
 )
 
-func testTLSProbe(ip string, domain string) {
+func tlsDiagnosticTimeout() time.Duration {
+	return 3 * time.Second
+}
 
-	fmt.Print("Testing TLS handshake ")
-
-	spin := []rune{'|', '/', '-', '\\'}
-
-	for i := 0; i < 10; i++ {
-
-		fmt.Printf("\rTesting TLS handshake %c", spin[i%4])
-
-		time.Sleep(120 * time.Millisecond)
-	}
-
-	timeout := time.Duration(*flagSettings.RequestsTimeout) * time.Second
+func testTLSProbe(ip string, domain string) TLSStatus {
+	timeout := tlsDiagnosticTimeout()
 
 	conn, err := tls.DialWithDialer(
 		&net.Dialer{Timeout: timeout},
@@ -33,12 +24,13 @@ func testTLSProbe(ip string, domain string) {
 	)
 
 	if err != nil {
+		if ne, ok := err.(net.Error); ok && ne.Timeout() {
+			return TLSStatusTimeout
+		}
 
-		fmt.Println("\rTLS interference likely")
-		return
+		return TLSStatusFail
 	}
 
-	conn.Close()
-
-	fmt.Println("\rTLS handshake OK")
+	_ = conn.Close()
+	return TLSStatusOK
 }

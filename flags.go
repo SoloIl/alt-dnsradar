@@ -9,8 +9,8 @@ import (
 func initFlags() {
 	flagSettings.LogName = flag.String(
 		"l",
-		thisFilename()+".log",
-		"log file name",
+		"",
+		"optional log file name",
 	)
 
 	flagSettings.Resolver = flag.String(

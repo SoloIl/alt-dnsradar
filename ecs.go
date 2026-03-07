@@ -28,15 +28,17 @@ func generateSubnets() []string {
 	return subnets
 }
 
-func createResolver() upstream.Upstream {
+func createResolver() (upstream.Upstream, error) {
 	o := &upstream.Options{
 		Timeout: requestTimeout(),
 	}
 
 	u, err := upstream.AddressToUpstream(*flagSettings.Resolver, o)
-	check(err)
+	if err != nil {
+		return nil, fmt.Errorf("create resolver %q: %w", *flagSettings.Resolver, err)
+	}
 
-	return u
+	return u, nil
 }
 
 func sendRequests(ctx context.Context, subnets []string, u upstream.Upstream, total int) []string {

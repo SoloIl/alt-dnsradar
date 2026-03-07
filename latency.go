@@ -24,7 +24,7 @@ func validateIPs(ips []string) []IPResult {
 	bar := p.New(int64(len(ips)),
 		mpb.BarStyle().Rbound("|"),
 		mpb.PrependDecorators(
-			decor.Name("Edge latency "),
+			decor.Name("TCP latency "),
 			decor.CountersNoUnit("%d/%d"),
 		),
 		mpb.AppendDecorators(
@@ -77,20 +77,27 @@ func validateIPs(ips []string) []IPResult {
 	return out
 }
 
+func measureTCPConnect(ip string, timeout time.Duration) (time.Duration, error) {
+	start := time.Now()
+	conn, err := net.DialTimeout("tcp", ip+":443", timeout)
+	if err != nil {
+		return 0, err
+	}
+
+	_ = conn.Close()
+	return time.Since(start), nil
+}
+
 func measureMedianLatency(ip string, probes int, timeout time.Duration) time.Duration {
 	var samples []time.Duration
-	addr := ip + ":443"
 
 	for i := 0; i < probes; i++ {
-		start := time.Now()
-
-		conn, err := net.DialTimeout("tcp", addr, timeout)
+		latency, err := measureTCPConnect(ip, timeout)
 		if err != nil {
 			continue
 		}
 
-		_ = conn.Close()
-		samples = append(samples, time.Since(start))
+		samples = append(samples, latency)
 	}
 
 	if len(samples) == 0 {
