@@ -1,0 +1,79 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            archive: tar.gz
+            binary: alt-dnsradar
+          - goos: linux
+            goarch: arm64
+            archive: tar.gz
+            binary: alt-dnsradar
+          - goos: darwin
+            goarch: amd64
+            archive: tar.gz
+            binary: alt-dnsradar
+          - goos: darwin
+            goarch: arm64
+            archive: tar.gz
+            binary: alt-dnsradar
+          - goos: windows
+            goarch: amd64
+            archive: zip
+            binary: alt-dnsradar.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          app_name="alt-dnsradar"
+          target="${{ matrix.goos }}-${{ matrix.goarch }}"
+          package_dir="${app_name}-${target}"
+          archive_name="${package_dir}"
+
+          GOOS="${{ matrix.goos }}" GOARCH="${{ matrix.goarch }}" go build -trimpath -ldflags="-s -w" -o "${{ matrix.binary }}" .
+
+          mkdir -p "${package_dir}"
+          mv "${{ matrix.binary }}" "${package_dir}/"
+          cp README.md README.ru.md "${package_dir}/"
+
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            archive_name="${archive_name}.zip"
+            zip -r "${archive_name}" "${package_dir}"
+          else
+            archive_name="${archive_name}.tar.gz"
+            tar -czf "${archive_name}" "${package_dir}"
+          fi
+
+          echo "archive_name=${archive_name}" >> "${GITHUB_ENV}"
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.archive_name }}
+

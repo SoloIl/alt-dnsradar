@@ -2,7 +2,7 @@
 
 [Русская версия](./README.ru.md)
 
-Alt DNSRadar is a lightweight cross-platform CLI tool written in Go that discovers alternative IP addresses for a domain using EDNS Client Subnet (ECS) probing and ranks them by real TCP connect latency.
+Alt DNSRadar is a lightweight cross-platform Go CLI that discovers alternative IP addresses for a domain using EDNS Client Subnet (ECS) probing and ranks reachable results by real TCP connect latency. Thanks to Ori from ntc.party for the ECS scanning idea.
 
 The tool helps reveal IP addresses that may not be visible through the local DNS resolver.
 
@@ -51,12 +51,12 @@ Prebuilt packages are planned for the main platforms.
 
 Dummy links for the future release page:
 
-- Linux amd64: `https://github.com/yourname/dnsradar/releases/latest/download/dnsradar-linux-amd64.tar.gz`
-- Linux arm64: `https://github.com/yourname/dnsradar/releases/latest/download/dnsradar-linux-arm64.tar.gz`
-- macOS amd64: `https://github.com/yourname/dnsradar/releases/latest/download/dnsradar-darwin-amd64.tar.gz`
-- macOS arm64: `https://github.com/yourname/dnsradar/releases/latest/download/dnsradar-darwin-arm64.tar.gz`
-- Windows amd64: `https://github.com/yourname/dnsradar/releases/latest/download/dnsradar-windows-amd64.zip`
-- Windows arm64: `https://github.com/yourname/dnsradar/releases/latest/download/dnsradar-windows-arm64.zip`
+- Linux amd64: `https://github.com/SoloIl/alt-dnsradar/releases/latest/download/alt-dnsradar-linux-amd64.tar.gz`
+- Linux arm64: `https://github.com/SoloIl/alt-dnsradar/releases/latest/download/alt-dnsradar-linux-arm64.tar.gz`
+- macOS amd64: `https://github.com/SoloIl/alt-dnsradar/releases/latest/download/alt-dnsradar-darwin-amd64.tar.gz`
+- macOS arm64: `https://github.com/SoloIl/alt-dnsradar/releases/latest/download/alt-dnsradar-darwin-arm64.tar.gz`
+- Windows amd64: `https://github.com/SoloIl/alt-dnsradar/releases/latest/download/alt-dnsradar-windows-amd64.zip`
+- Windows arm64: `https://github.com/SoloIl/alt-dnsradar/releases/latest/download/alt-dnsradar-windows-arm64.zip`
 
 ## Install From Source
 
@@ -76,7 +76,7 @@ go version
 2. Clone the repository:
 
 ```bash
-git clone https://github.com/yourname/dnsradar.git
+git clone https://github.com/SoloIl/alt-dnsradar.git
 cd dnsradar
 ```
 
@@ -103,7 +103,7 @@ brew install go
 2. Clone the repository:
 
 ```bash
-git clone https://github.com/yourname/dnsradar.git
+git clone https://github.com/SoloIl/alt-dnsradar.git
 cd dnsradar
 ```
 
@@ -126,7 +126,7 @@ go build -o dnsradar .
 3. Clone the repository:
 
 ```powershell
-git clone https://github.com/yourname/dnsradar.git
+git clone https://github.com/SoloIl/alt-dnsradar.git
 cd dnsradar
 ```
 
