@@ -13,7 +13,7 @@ func sortResults(results []IPResult) {
 
 func printAll(ips []string) {
 	fmt.Println("")
-	fmt.Println("All discovered IPs")
+	fmt.Println(msgAllDiscoveredIPs())
 	fmt.Println("")
 
 	for _, ip := range ips {

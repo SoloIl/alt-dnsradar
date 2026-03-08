@@ -12,7 +12,7 @@ import (
 )
 
 func diagnoseDNS(domain string) {
-	fmt.Println("DNS diagnostics")
+	fmt.Println(msgDNSDiagnosticsTitle())
 	fmt.Println("----------------------------")
 
 	local := lookupLocalDNS(domain)
@@ -196,7 +196,7 @@ func buildInitialDiagRows(domain string, local []string, udp []string, googleDoH
 				IP:        "-",
 				TCPAlive:  false,
 				TLSStatus: TLSStatusSkip,
-				Note:      "no IPv4 answers",
+				Note:      msgNoIPv4Answers(),
 			})
 			continue
 		}
@@ -223,18 +223,18 @@ func buildInitialDiagRows(domain string, local []string, udp []string, googleDoH
 
 func printInitialDiagTable(rows []InitialDiagRow) {
 	fmt.Println("")
-	fmt.Println("Initial endpoint diagnostics")
+	fmt.Println(msgInitialEndpointDiagnosticsTitle())
 	fmt.Println("")
-	fmt.Printf("%-17s %-16s %-8s %-8s %s\n", "SOURCE", "IP", "TCP", "TLS", "NOTE")
+	fmt.Printf("%-17s %-16s %-9s %-8s %s\n", "SOURCE", "IP", "TCP", "TLS", "NOTE")
 	fmt.Println(strings.Repeat("-", 80))
 
 	for _, row := range rows {
 		fmt.Printf(
-			"%-17s %-16s %-8s %-8s %s\n",
+			"%-17s %-16s %-9s %-8s %s\n",
 			row.Source,
 			row.IP,
-			initialTCPLabel(row),
-			row.TLSStatus,
+			colorizeTCPLabel(initialTCPLabel(row)),
+			colorizeTLSStatus(row.TLSStatus),
 			row.Note,
 		)
 	}
@@ -242,7 +242,7 @@ func printInitialDiagTable(rows []InitialDiagRow) {
 
 func printDNSSummary(comparisons []DNSComparison) {
 	fmt.Println("")
-	fmt.Println("DNS diagnostic summary")
+	fmt.Println(msgDNSSummaryTitle())
 
 	for _, comparison := range comparisons {
 		fmt.Printf("- %s\n", dnsSummaryLine(comparison))
@@ -254,44 +254,44 @@ func dnsSummaryLine(comparison DNSComparison) string {
 	case "Google UDP":
 		switch comparison.Relation {
 		case RelationUnavailable:
-			return "Google UDP and Google DoH comparison unavailable"
+			return msgGoogleUDPAndGoogleDoHUnavailable()
 		case RelationExactMatch:
-			return "Google UDP is consistent with Google DoH"
+			return msgGoogleUDPConsistent()
 		case RelationPartialOverlap:
-			return "Google UDP partially differs from Google DoH; possible cache or CDN variance"
+			return msgGoogleUDPPartialDiffers()
 		case RelationNoOverlap:
 			if isMultiEndpointMismatch(comparison) {
-				return "Google UDP and Google DoH returned different multi-endpoint sets; possible cache, CDN variance, or interception"
+				return msgGoogleUDPMultiSetMismatch()
 			}
-			return "Strong mismatch between Google UDP and Google DoH; possible DNS interception"
+			return msgGoogleUDPStrongMismatch()
 		}
 	case "Local DNS":
 		switch comparison.Relation {
 		case RelationUnavailable:
-			return "Local DNS comparison with Google DoH unavailable"
+			return msgLocalDNSUnavailable()
 		case RelationExactMatch:
-			return "Local DNS is consistent with Google DoH"
+			return msgLocalDNSConsistent()
 		case RelationPartialOverlap:
-			return "Local DNS partially differs from Google DoH"
+			return msgLocalDNSPartialDiffers()
 		case RelationNoOverlap:
 			if isMultiEndpointMismatch(comparison) {
-				return "Local DNS returned a different multi-endpoint set from Google DoH"
+				return msgLocalDNSMultiSetMismatch()
 			}
-			return "Local DNS strongly differs from Google DoH"
+			return msgLocalDNSStrongMismatch()
 		}
 	case "Cloudflare DoH":
 		switch comparison.Relation {
 		case RelationUnavailable:
-			return "Cloudflare DoH and Google DoH comparison unavailable"
+			return msgCloudflareDoHUnavailable()
 		case RelationExactMatch:
-			return "Cloudflare DoH is consistent with Google DoH"
+			return msgCloudflareDoHConsistent()
 		case RelationPartialOverlap:
-			return "Cloudflare DoH partially differs from Google DoH; possible CDN or cache variance"
+			return msgCloudflareDoHPartialDiffers()
 		case RelationNoOverlap:
 			if isMultiEndpointMismatch(comparison) {
-				return "Cloudflare DoH and Google DoH returned different multi-endpoint sets; reference confidence is lower"
+				return msgCloudflareDoHMultiSetMismatch()
 			}
-			return "Strong mismatch between Cloudflare DoH and Google DoH; reference confidence is lower"
+			return msgCloudflareDoHStrongMismatch()
 		}
 	}
 
@@ -357,17 +357,17 @@ func hasOverlap(a []string, b []string) bool {
 
 func initialDiagNote(source string, ip string, refSet map[string]struct{}) string {
 	if source != "Google DoH" && source != "Cloudflare DoH" && len(refSet) == 0 {
-		return "reference unavailable"
+		return msgReferenceUnavailable()
 	}
 
 	switch source {
 	case "Google DoH", "Cloudflare DoH":
-		return "reference"
+		return msgReference()
 	case "Local DNS", "Google UDP":
 		if _, ok := refSet[ip]; ok {
-			return "shared with DoH reference"
+			return msgSharedWithDoHReference()
 		}
-		return "not in DoH reference"
+		return msgNotInDoHReference()
 	default:
 		return "-"
 	}

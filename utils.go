@@ -47,7 +47,7 @@ func thisFilename() string {
 
 func check(err error) {
 	if err != nil {
-		log.Printf("\nError: %v\n", err)
+		log.Print(msgErrorPrefix(err))
 		os.Exit(1)
 	}
 }

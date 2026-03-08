@@ -126,8 +126,5 @@ func probeUniqueEndpointsParallel(ips []string, domain string, tcpTimeout time.D
 }
 
 func printInitialProbeStatus(uniqueCount int) {
-	fmt.Printf(
-		"Running initial TCP/TLS diagnostics for %d unique endpoint(s)...\n",
-		uniqueCount,
-	)
+	fmt.Printf("%s\n", msgInitialProbeStatus(uniqueCount))
 }

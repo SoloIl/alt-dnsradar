@@ -19,6 +19,8 @@ type Settings struct {
 	ShowAll         *bool
 	Verbose         *bool
 	QuietMode       *bool
+	NoColor         *bool
+	Lang            *string
 }
 
 type IPResult struct {

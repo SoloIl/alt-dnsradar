@@ -4,57 +4,144 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func initFlags() {
+	flag.Usage = printUsage
+
 	flagSettings.LogName = flag.String(
 		"l",
 		"",
-		"optional log file name",
+		msgLogFileFlag(),
 	)
 
 	flagSettings.Resolver = flag.String(
 		"resolver",
 		"https://dns.google/dns-query",
-		"DoH resolver with ECS support",
+		msgResolverFlag(),
 	)
 
 	flagSettings.RequestsTimeout = flag.Int(
 		"timeout",
 		3,
-		"network timeout in seconds",
+		msgTimeoutFlag(),
 	)
 
 	flagSettings.ShowAll = flag.Bool(
 		"all",
 		false,
-		"show all discovered IPs",
+		msgShowAllFlag(),
 	)
 
 	flagSettings.Verbose = flag.Bool(
 		"v",
 		false,
-		"verbose output",
+		msgVerboseFlag(),
 	)
 
 	flagSettings.QuietMode = flag.Bool(
 		"q",
 		false,
-		"quiet console",
+		msgQuietFlag(),
 	)
 
-	flag.Parse()
+	flagSettings.NoColor = flag.Bool(
+		"no-color",
+		false,
+		msgNoColorFlag(),
+	)
 
-	if flag.NArg() < 1 {
-		fmt.Println("Usage:")
-		fmt.Println("  dnsradar <domain> [flags]")
-		fmt.Println("")
-		fmt.Println("Examples:")
-		fmt.Println("  dnsradar instagram.com")
-		fmt.Println("  dnsradar youtube.com --all")
+	flagSettings.Lang = flag.String(
+		"lang",
+		"en",
+		msgLangFlag(),
+	)
+
+	domain, reorderedArgs := splitArgs(os.Args[1:])
+	flag.CommandLine.Parse(reorderedArgs)
+
+	if domain == "" {
+		printUsage()
 		os.Exit(1)
 	}
 
-	domain := flag.Arg(0)
 	flagSettings.URL = &domain
+}
+
+func splitArgs(args []string) (string, []string) {
+	var domain string
+	var out []string
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+
+		if strings.HasPrefix(arg, "-") {
+			out = append(out, arg)
+
+			if flagConsumesValue(arg) && i+1 < len(args) {
+				out = append(out, args[i+1])
+				i++
+			}
+			continue
+		}
+
+		if domain == "" {
+			domain = arg
+		}
+	}
+
+	return domain, out
+}
+
+func flagConsumesValue(arg string) bool {
+	if strings.Contains(arg, "=") {
+		return false
+	}
+
+	switch arg {
+	case "-l", "--l", "-resolver", "--resolver", "-timeout", "--timeout", "-lang", "--lang":
+		return true
+	default:
+		return false
+	}
+}
+
+func printUsage() {
+	fmt.Println(msgUsageTitle())
+	fmt.Println("  dnsradar <domain> [flags]")
+	fmt.Println("")
+	fmt.Println(msgExamplesTitle())
+	fmt.Println(msgRecommendedExample())
+	fmt.Println(msgSecondaryExample())
+	fmt.Println("")
+	fmt.Println(msgDefaultBehaviorTitle())
+	for _, line := range msgDefaultBehaviorLines() {
+		fmt.Printf("  - %s\n", line)
+	}
+	fmt.Println("")
+
+	flag.VisitAll(func(f *flag.Flag) {
+		fmt.Printf("  -%s\n", f.Name)
+		desc := f.Usage
+		if meta := flagMeta(f.Name, f.DefValue); meta != "" {
+			desc = fmt.Sprintf("%s (%s)", desc, meta)
+		}
+		fmt.Printf("    %s\n", desc)
+	})
+}
+
+func flagMeta(name string, def string) string {
+	switch name {
+	case "l":
+		return "optional, string"
+	case "resolver":
+		return fmt.Sprintf("default %q, string", def)
+	case "timeout":
+		return fmt.Sprintf("default %s, int", def)
+	case "lang":
+		return fmt.Sprintf("default %q, string", def)
+	default:
+		return ""
+	}
 }

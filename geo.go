@@ -98,7 +98,7 @@ func buildGeoResults(results []IPResult, top int) []GeoResult {
 		info, err := lookupGeo(r.IP)
 		if err != nil {
 			if errors.Is(err, ErrGeoRateLimited) && !rateLimitWarned {
-				log.Println("Geo lookup rate limit reached; location fields may be incomplete")
+				log.Println(msgGeoRateLimitWarning())
 				rateLimitWarned = true
 			}
 
@@ -162,28 +162,25 @@ func populateTLSStatuses(results []GeoResult) {
 
 func printGeoTable(results []IPResult, top int) {
 	if len(results) == 0 {
-		fmt.Println("\nNo reachable edges found")
+		fmt.Printf("\n%s\n", msgNoReachableEdges())
 		return
 	}
 
-	fmt.Printf(
-		"\nPreparing top endpoint table for %s (geo lookup + TLS diagnostics)...\n",
-		*flagSettings.URL,
-	)
+	fmt.Printf("\n%s\n", msgPreparingTopEndpointTable(*flagSettings.URL))
 
 	geo := buildGeoResults(results, top)
 
-	fmt.Printf("\nTop fastest endpoints for %s\n\n", *flagSettings.URL)
-	fmt.Printf("%-16s %-6s %-8s %-14s %-8s %s\n",
+	fmt.Printf("\n%s\n\n", msgTopFastestEndpoints(*flagSettings.URL))
+	fmt.Printf("%-16s %-7s %-8s %-14s %-8s %s\n",
 		"IP", "TCP", "TLS", "CDN", "ASN", "LOCATION")
 	fmt.Println(strings.Repeat("-", 80))
 
 	for _, g := range geo {
 		location := fmt.Sprintf("%-4s %s", g.Country, g.City)
-		fmt.Printf("%-16s %-6s %-8s %-14s %-8s %s\n",
+		fmt.Printf("%-16s %-7s %-8s %-14s %-8s %s\n",
 			g.IP,
-			fmt.Sprintf("%dms", g.Latency),
-			g.TLS,
+			colorizeTCPLabel(fmt.Sprintf("%dms", g.Latency)),
+			colorizeTLSStatus(g.TLS),
 			g.CDN,
 			g.ASN,
 			location,
