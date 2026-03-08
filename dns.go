@@ -114,32 +114,40 @@ func compareIPSetsDetailed(leftName string, left []string, rightName string, rig
 
 	if len(left) == 0 || len(right) == 0 {
 		return DNSComparison{
-			LeftName:  leftName,
-			RightName: rightName,
-			Relation:  RelationUnavailable,
+			LeftName:   leftName,
+			RightName:  rightName,
+			LeftCount:  len(left),
+			RightCount: len(right),
+			Relation:   RelationUnavailable,
 		}
 	}
 
 	if sameSet(left, right) {
 		return DNSComparison{
-			LeftName:  leftName,
-			RightName: rightName,
-			Relation:  RelationExactMatch,
+			LeftName:   leftName,
+			RightName:  rightName,
+			LeftCount:  len(left),
+			RightCount: len(right),
+			Relation:   RelationExactMatch,
 		}
 	}
 
 	if hasOverlap(left, right) {
 		return DNSComparison{
-			LeftName:  leftName,
-			RightName: rightName,
-			Relation:  RelationPartialOverlap,
+			LeftName:   leftName,
+			RightName:  rightName,
+			LeftCount:  len(left),
+			RightCount: len(right),
+			Relation:   RelationPartialOverlap,
 		}
 	}
 
 	return DNSComparison{
-		LeftName:  leftName,
-		RightName: rightName,
-		Relation:  RelationNoOverlap,
+		LeftName:   leftName,
+		RightName:  rightName,
+		LeftCount:  len(left),
+		RightCount: len(right),
+		Relation:   RelationNoOverlap,
 	}
 }
 
@@ -162,13 +170,21 @@ func buildInitialDiagRows(domain string, local []string, udp []string, googleDoH
 		refSet[ip] = struct{}{}
 	}
 
-	type diagProbeResult struct {
-		tcpAlive bool
-		latency  time.Duration
-		tls      TLSStatus
+	uniqueIPs := make(map[string]struct{})
+	for _, source := range sources {
+		for _, ip := range normalizeSet(source.ips) {
+			uniqueIPs[ip] = struct{}{}
+		}
 	}
 
-	probeCache := make(map[string]diagProbeResult)
+	ipsToProbe := make([]string, 0, len(uniqueIPs))
+	for ip := range uniqueIPs {
+		ipsToProbe = append(ipsToProbe, ip)
+	}
+	slices.Sort(ipsToProbe)
+
+	printInitialProbeStatus(len(ipsToProbe))
+	probeCache := probeUniqueEndpointsParallel(ipsToProbe, domain, requestTimeout(), 4)
 
 	var rows []InitialDiagRow
 
@@ -194,30 +210,10 @@ func buildInitialDiagRows(domain string, local []string, udp []string, googleDoH
 			}
 
 			if cached, ok := probeCache[ip]; ok {
-				row.TCPAlive = cached.tcpAlive
-				row.TCPLatency = cached.latency
-				row.TLSStatus = cached.tls
-				rows = append(rows, row)
-				continue
+				row.TCPAlive = cached.TCPAlive
+				row.TCPLatency = cached.TCPLatency
+				row.TLSStatus = cached.TLSStatus
 			}
-
-			probe := diagProbeResult{
-				tcpAlive: false,
-				latency:  0,
-				tls:      TLSStatusSkip,
-			}
-
-			latency, err := measureTCPConnect(ip, requestTimeout())
-			if err == nil {
-				probe.tcpAlive = true
-				probe.latency = latency
-				probe.tls = testTLSProbe(ip, domain)
-			}
-
-			probeCache[ip] = probe
-			row.TCPAlive = probe.tcpAlive
-			row.TCPLatency = probe.latency
-			row.TLSStatus = probe.tls
 			rows = append(rows, row)
 		}
 	}
@@ -264,6 +260,9 @@ func dnsSummaryLine(comparison DNSComparison) string {
 		case RelationPartialOverlap:
 			return "Google UDP partially differs from Google DoH; possible cache or CDN variance"
 		case RelationNoOverlap:
+			if isMultiEndpointMismatch(comparison) {
+				return "Google UDP and Google DoH returned different multi-endpoint sets; possible cache, CDN variance, or interception"
+			}
 			return "Strong mismatch between Google UDP and Google DoH; possible DNS interception"
 		}
 	case "Local DNS":
@@ -275,6 +274,9 @@ func dnsSummaryLine(comparison DNSComparison) string {
 		case RelationPartialOverlap:
 			return "Local DNS partially differs from Google DoH"
 		case RelationNoOverlap:
+			if isMultiEndpointMismatch(comparison) {
+				return "Local DNS returned a different multi-endpoint set from Google DoH"
+			}
 			return "Local DNS strongly differs from Google DoH"
 		}
 	case "Cloudflare DoH":
@@ -286,11 +288,18 @@ func dnsSummaryLine(comparison DNSComparison) string {
 		case RelationPartialOverlap:
 			return "Cloudflare DoH partially differs from Google DoH; possible CDN or cache variance"
 		case RelationNoOverlap:
+			if isMultiEndpointMismatch(comparison) {
+				return "Cloudflare DoH and Google DoH returned different multi-endpoint sets; reference confidence is lower"
+			}
 			return "Strong mismatch between Cloudflare DoH and Google DoH; reference confidence is lower"
 		}
 	}
 
 	return comparison.LeftName + " comparison unavailable"
+}
+
+func isMultiEndpointMismatch(comparison DNSComparison) bool {
+	return comparison.LeftCount > 1 || comparison.RightCount > 1
 }
 
 func normalizeSet(in []string) []string {

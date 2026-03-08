@@ -135,7 +135,49 @@ func TestCompareIPSetsDetailed(t *testing.T) {
 			if got.Relation != tt.want {
 				t.Fatalf("compareIPSetsDetailed() relation = %v, want %v", got.Relation, tt.want)
 			}
+
+			if got.LeftCount != len(normalizeSet(tt.left)) {
+				t.Fatalf("compareIPSetsDetailed() left count = %d, want %d", got.LeftCount, len(normalizeSet(tt.left)))
+			}
+
+			if got.RightCount != len(normalizeSet(tt.right)) {
+				t.Fatalf("compareIPSetsDetailed() right count = %d, want %d", got.RightCount, len(normalizeSet(tt.right)))
+			}
 		})
+	}
+}
+
+func TestDNSSummaryLineForMultiEndpointMismatch(t *testing.T) {
+	comparison := DNSComparison{
+		LeftName:   "Google UDP",
+		RightName:  "Google DoH",
+		LeftCount:  4,
+		RightCount: 4,
+		Relation:   RelationNoOverlap,
+	}
+
+	got := dnsSummaryLine(comparison)
+	want := "Google UDP and Google DoH returned different multi-endpoint sets; possible cache, CDN variance, or interception"
+
+	if got != want {
+		t.Fatalf("dnsSummaryLine(multi-endpoint) = %q, want %q", got, want)
+	}
+}
+
+func TestDNSSummaryLineForSingleEndpointMismatch(t *testing.T) {
+	comparison := DNSComparison{
+		LeftName:   "Google UDP",
+		RightName:  "Google DoH",
+		LeftCount:  1,
+		RightCount: 1,
+		Relation:   RelationNoOverlap,
+	}
+
+	got := dnsSummaryLine(comparison)
+	want := "Strong mismatch between Google UDP and Google DoH; possible DNS interception"
+
+	if got != want {
+		t.Fatalf("dnsSummaryLine(single-endpoint) = %q, want %q", got, want)
 	}
 }
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net"
 	"sort"
 	"sync"
 	"time"
@@ -75,17 +74,6 @@ func validateIPs(ips []string) []IPResult {
 	p.Wait()
 
 	return out
-}
-
-func measureTCPConnect(ip string, timeout time.Duration) (time.Duration, error) {
-	start := time.Now()
-	conn, err := net.DialTimeout("tcp", ip+":443", timeout)
-	if err != nil {
-		return 0, err
-	}
-
-	_ = conn.Close()
-	return time.Since(start), nil
 }
 
 func measureMedianLatency(ip string, probes int, timeout time.Duration) time.Duration {

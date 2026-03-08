@@ -46,9 +46,11 @@ const (
 )
 
 type DNSComparison struct {
-	LeftName  string
-	RightName string
-	Relation  SetRelation
+	LeftName   string
+	RightName  string
+	LeftCount  int
+	RightCount int
+	Relation   SetRelation
 }
 
 type InitialDiagRow struct {
@@ -58,6 +60,12 @@ type InitialDiagRow struct {
 	TCPLatency time.Duration
 	TLSStatus  TLSStatus
 	Note       string
+}
+
+type ProbeResult struct {
+	TCPAlive   bool
+	TCPLatency time.Duration
+	TLSStatus  TLSStatus
 }
 
 var (
