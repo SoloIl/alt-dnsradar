@@ -47,9 +47,9 @@ This makes the tool useful for understanding how a platform distributes its infr
 
 ## Download Prebuilt Packages
 
-Prebuilt packages are planned for the main platforms.
+Prebuilt packages for the main platforms will appear on the GitHub Releases page.
 
-Dummy links for the future release page:
+Release asset links:
 
 - Linux amd64: `https://github.com/SoloIl/alt-dnsradar/releases/latest/download/alt-dnsradar-linux-amd64.tar.gz`
 - Linux arm64: `https://github.com/SoloIl/alt-dnsradar/releases/latest/download/alt-dnsradar-linux-arm64.tar.gz`
