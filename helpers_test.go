@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
@@ -239,5 +240,53 @@ func TestValueOrDash(t *testing.T) {
 
 	if got := valueOrDash("   "); got != "-" {
 		t.Fatalf("valueOrDash(blank) = %q, want %q", got, "-")
+	}
+}
+
+func TestSplitArgs(t *testing.T) {
+	tests := []struct {
+		name        string
+		args        []string
+		wantDomain  string
+		wantExtras  []string
+		wantFlagOut []string
+	}{
+		{
+			name:        "domain plus flags after it",
+			args:        []string{"example.com", "--lang", "ru", "--all"},
+			wantDomain:  "example.com",
+			wantFlagOut: []string{"--lang", "ru", "--all"},
+		},
+		{
+			name:        "flags before domain",
+			args:        []string{"--lang", "ru", "example.com"},
+			wantDomain:  "example.com",
+			wantFlagOut: []string{"--lang", "ru"},
+		},
+		{
+			name:        "extra positional arg is preserved as error candidate",
+			args:        []string{"dnsradar", "instagram.com"},
+			wantDomain:  "dnsradar",
+			wantExtras:  []string{"instagram.com"},
+			wantFlagOut: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			domain, extras, flags := splitArgs(tt.args)
+
+			if domain != tt.wantDomain {
+				t.Fatalf("splitArgs() domain = %q, want %q", domain, tt.wantDomain)
+			}
+
+			if !reflect.DeepEqual(extras, tt.wantExtras) {
+				t.Fatalf("splitArgs() extras = %v, want %v", extras, tt.wantExtras)
+			}
+
+			if !reflect.DeepEqual(flags, tt.wantFlagOut) {
+				t.Fatalf("splitArgs() flags = %v, want %v", flags, tt.wantFlagOut)
+			}
+		})
 	}
 }

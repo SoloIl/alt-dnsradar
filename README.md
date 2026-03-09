@@ -77,19 +77,19 @@ go version
 
 ```bash
 git clone https://github.com/SoloIl/alt-dnsradar.git
-cd dnsradar
+cd alt-dnsradar
 ```
 
 3. Build the binary:
 
 ```bash
-go build -o dnsradar .
+go build -o alt-dnsradar .
 ```
 
 4. Run it:
 
 ```bash
-./dnsradar example.com
+./alt-dnsradar example.com
 ```
 
 ### macOS
@@ -104,19 +104,19 @@ brew install go
 
 ```bash
 git clone https://github.com/SoloIl/alt-dnsradar.git
-cd dnsradar
+cd alt-dnsradar
 ```
 
 3. Build the binary:
 
 ```bash
-go build -o dnsradar .
+go build -o alt-dnsradar .
 ```
 
 4. Run it:
 
 ```bash
-./dnsradar example.com
+./alt-dnsradar example.com
 ```
 
 ### Windows
@@ -127,19 +127,19 @@ go build -o dnsradar .
 
 ```powershell
 git clone https://github.com/SoloIl/alt-dnsradar.git
-cd dnsradar
+cd alt-dnsradar
 ```
 
 4. Build the binary:
 
 ```powershell
-go build -o dnsradar.exe .
+go build -o alt-dnsradar.exe .
 ```
 
 5. Run it:
 
 ```powershell
-.\dnsradar.exe example.com
+.\alt-dnsradar.exe example.com
 ```
 
 ## Quick Start
@@ -153,7 +153,7 @@ If you already downloaded a prebuilt package:
 3. Run:
 
 ```bash
-./dnsradar example.com
+./alt-dnsradar example.com
 ```
 
 ### Windows
@@ -163,7 +163,7 @@ If you already downloaded a prebuilt package:
 3. Run:
 
 ```powershell
-.\dnsradar.exe example.com
+.\alt-dnsradar.exe example.com
 ```
 
 ## Usage
@@ -183,7 +183,7 @@ go run . example.com --lang ru
 ### Default Run
 
 ```bash
-dnsradar example.com
+alt-dnsradar example.com
 ```
 
 With a plain command like that, the tool will:
@@ -200,19 +200,19 @@ With a plain command like that, the tool will:
 Show all discovered IPs:
 
 ```bash
-dnsradar example.com --all
+alt-dnsradar example.com --all
 ```
 
 Write a compact log file:
 
 ```bash
-dnsradar example.com -l dnsradar.log
+alt-dnsradar example.com -l dnsradar.log
 ```
 
 Disable colors:
 
 ```bash
-dnsradar example.com --no-color
+alt-dnsradar example.com --no-color
 ```
 
 ## Example Output
@@ -276,6 +276,7 @@ Actual output depends on the domain, network conditions, resolver behavior, and 
 - `ipinfo.io` metadata requests are limited by the external service. The current workflow queries only the top 5 fastest endpoints to reduce usage (1000 requests per day).
 - DNS answers for multi-endpoint domains may differ between resolvers without implying manipulation.
 - Some networks or resolvers may block ECS behavior or return limited results.
+- For reliable results, disable software that changes end-user traffic: proxies, VPNs, and anti-DPI tools.
 
 ## Limitations
 

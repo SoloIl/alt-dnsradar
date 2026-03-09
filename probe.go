@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -12,9 +13,10 @@ func tlsDiagnosticTimeout() time.Duration {
 	return 3 * time.Second
 }
 
-func measureTCPConnect(ip string, timeout time.Duration) (time.Duration, error) {
+func measureTCPConnect(ctx context.Context, ip string, timeout time.Duration) (time.Duration, error) {
 	start := time.Now()
-	conn, err := net.DialTimeout("tcp", ip+":443", timeout)
+	dialer := net.Dialer{Timeout: timeout}
+	conn, err := dialer.DialContext(ctx, "tcp", ip+":443")
 	if err != nil {
 		return 0, err
 	}
@@ -23,20 +25,30 @@ func measureTCPConnect(ip string, timeout time.Duration) (time.Duration, error) 
 	return time.Since(start), nil
 }
 
-func testTLSProbe(ip string, domain string) TLSStatus {
+func testTLSProbe(ctx context.Context, ip string, domain string) TLSStatus {
 	timeout := tlsDiagnosticTimeout()
 
-	conn, err := tls.DialWithDialer(
-		&net.Dialer{Timeout: timeout},
-		"tcp",
-		ip+":443",
-		&tls.Config{
-			ServerName:         domain,
-			InsecureSkipVerify: true,
-		},
-	)
-
+	dialer := &net.Dialer{Timeout: timeout}
+	rawConn, err := dialer.DialContext(ctx, "tcp", ip+":443")
 	if err != nil {
+		if ne, ok := err.(net.Error); ok && ne.Timeout() {
+			return TLSStatusTimeout
+		}
+
+		return TLSStatusFail
+	}
+
+	conn := tls.Client(rawConn, &tls.Config{
+		ServerName:         domain,
+		InsecureSkipVerify: true,
+	})
+	_ = rawConn.SetDeadline(time.Now().Add(timeout))
+
+	handshakeCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	if err := conn.HandshakeContext(handshakeCtx); err != nil {
+		_ = rawConn.Close()
 		if ne, ok := err.(net.Error); ok && ne.Timeout() {
 			return TLSStatusTimeout
 		}
@@ -48,25 +60,25 @@ func testTLSProbe(ip string, domain string) TLSStatus {
 	return TLSStatusOK
 }
 
-func probeEndpoint(ip string, domain string, tcpTimeout time.Duration) ProbeResult {
+func probeEndpoint(ctx context.Context, ip string, domain string, tcpTimeout time.Duration) ProbeResult {
 	result := ProbeResult{
 		TCPAlive:   false,
 		TCPLatency: 0,
 		TLSStatus:  TLSStatusSkip,
 	}
 
-	latency := measureMedianLatency(ip, 3, tcpTimeout)
+	latency := measureMedianLatency(ctx, ip, 3, tcpTimeout)
 	if latency == 0 {
 		return result
 	}
 
 	result.TCPAlive = true
 	result.TCPLatency = latency
-	result.TLSStatus = testTLSProbe(ip, domain)
+	result.TLSStatus = testTLSProbe(ctx, ip, domain)
 	return result
 }
 
-func probeUniqueEndpointsParallel(ips []string, domain string, tcpTimeout time.Duration, workers int) map[string]ProbeResult {
+func probeUniqueEndpointsParallel(ctx context.Context, ips []string, domain string, tcpTimeout time.Duration, workers int) map[string]ProbeResult {
 	results := make(map[string]ProbeResult)
 	if len(ips) == 0 {
 		return results
@@ -100,10 +112,19 @@ func probeUniqueEndpointsParallel(ips []string, domain string, tcpTimeout time.D
 		go func() {
 			defer wg.Done()
 
-			for job := range jobs {
-				outcomes <- probeOutcome{
-					ip:     job.ip,
-					result: probeEndpoint(job.ip, domain, tcpTimeout),
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case job, ok := <-jobs:
+					if !ok {
+						return
+					}
+
+					outcomes <- probeOutcome{
+						ip:     job.ip,
+						result: probeEndpoint(ctx, job.ip, domain, tcpTimeout),
+					}
 				}
 			}
 		}()
@@ -111,7 +132,14 @@ func probeUniqueEndpointsParallel(ips []string, domain string, tcpTimeout time.D
 
 	go func() {
 		for _, ip := range ips {
-			jobs <- probeJob{ip: ip}
+			select {
+			case <-ctx.Done():
+				close(jobs)
+				wg.Wait()
+				close(outcomes)
+				return
+			case jobs <- probeJob{ip: ip}:
+			}
 		}
 		close(jobs)
 		wg.Wait()

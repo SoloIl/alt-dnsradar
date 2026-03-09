@@ -77,19 +77,19 @@ go version
 
 ```bash
 git clone https://github.com/SoloIl/alt-dnsradar.git
-cd dnsradar
+cd alt-dnsradar
 ```
 
 3. Соберите бинарник:
 
 ```bash
-go build -o dnsradar .
+go build -o alt-dnsradar .
 ```
 
 4. Запустите его:
 
 ```bash
-./dnsradar example.com
+./alt-dnsradar example.com
 ```
 
 ### macOS
@@ -104,19 +104,19 @@ brew install go
 
 ```bash
 git clone https://github.com/SoloIl/alt-dnsradar.git
-cd dnsradar
+cd alt-dnsradar
 ```
 
 3. Соберите бинарник:
 
 ```bash
-go build -o dnsradar .
+go build -o alt-dnsradar .
 ```
 
 4. Запустите его:
 
 ```bash
-./dnsradar example.com
+./alt-dnsradar example.com
 ```
 
 ### Windows
@@ -127,19 +127,19 @@ go build -o dnsradar .
 
 ```powershell
 git clone https://github.com/SoloIl/alt-dnsradar.git
-cd dnsradar
+cd alt-dnsradar
 ```
 
 4. Соберите бинарник:
 
 ```powershell
-go build -o dnsradar.exe .
+go build -o alt-dnsradar.exe .
 ```
 
 5. Запустите его:
 
 ```powershell
-.\dnsradar.exe example.com
+.\alt-dnsradar.exe example.com
 ```
 
 ## Быстрый старт
@@ -153,7 +153,7 @@ go build -o dnsradar.exe .
 3. Запустите:
 
 ```bash
-./dnsradar example.com
+./alt-dnsradar example.com
 ```
 
 ### Windows
@@ -163,7 +163,7 @@ go build -o dnsradar.exe .
 3. Запустите:
 
 ```powershell
-.\dnsradar.exe example.com
+.\alt-dnsradar.exe example.com
 ```
 
 ## Использование
@@ -183,7 +183,7 @@ go run . example.com --lang ru
 ### Обычный запуск
 
 ```bash
-dnsradar example.com
+alt-dnsradar example.com
 ```
 
 При таком запуске утилита:
@@ -200,19 +200,19 @@ dnsradar example.com
 Показать все найденные IP:
 
 ```bash
-dnsradar example.com --all
+alt-dnsradar example.com --all
 ```
 
 Записать компактный лог-файл:
 
 ```bash
-dnsradar example.com -l dnsradar.log
+alt-dnsradar example.com -l dnsradar.log
 ```
 
 Отключить цвета:
 
 ```bash
-dnsradar example.com --no-color
+alt-dnsradar example.com --no-color
 ```
 
 ## Пример вывода
@@ -277,6 +277,7 @@ IP               TCP     TLS      CDN            ASN      LOCATION
 - Запросы метаданных к `ipinfo.io` ограничены правилами внешнего сервиса. Сейчас утилита запрашивает данные только для 5 самых быстрых endpoint, чтобы уменьшить расход лимита (1000 запросов в день).
 - Для multi-endpoint доменов DNS-ответы разных резолверов могут отличаться без признаков вмешательства.
 - Некоторые сети или резолверы могут ограничивать ECS-поведение или возвращать неполные результаты.
+- Для корректной работы отключите программы, влияющие на конечный трафик: прокси, VPN и анти-DPI утилиты.
 
 ## Ограничения
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -88,7 +89,7 @@ func parseASN(org string) string {
 	return "-"
 }
 
-func buildGeoResults(results []IPResult, top int) []GeoResult {
+func buildGeoResults(ctx context.Context, results []IPResult, top int) []GeoResult {
 	var geo []GeoResult
 	rateLimitWarned := false
 
@@ -128,12 +129,12 @@ func buildGeoResults(results []IPResult, top int) []GeoResult {
 		})
 	}
 
-	populateTLSStatuses(geo)
+	populateTLSStatuses(ctx, geo)
 
 	return geo
 }
 
-func populateTLSStatuses(results []GeoResult) {
+func populateTLSStatuses(ctx context.Context, results []GeoResult) {
 	if len(results) == 0 {
 		return
 	}
@@ -153,14 +154,14 @@ func populateTLSStatuses(results []GeoResult) {
 				wg.Done()
 			}()
 
-			results[idx].TLS = testTLSProbe(results[idx].IP, *flagSettings.URL)
+			results[idx].TLS = testTLSProbe(ctx, results[idx].IP, *flagSettings.URL)
 		}(i)
 	}
 
 	wg.Wait()
 }
 
-func printGeoTable(results []IPResult, top int) {
+func printGeoTable(ctx context.Context, results []IPResult, top int) {
 	if len(results) == 0 {
 		fmt.Printf("\n%s\n", msgNoReachableEdges())
 		return
@@ -168,7 +169,7 @@ func printGeoTable(results []IPResult, top int) {
 
 	fmt.Printf("\n%s\n", msgPreparingTopEndpointTable(*flagSettings.URL))
 
-	geo := buildGeoResults(results, top)
+	geo := buildGeoResults(ctx, results, top)
 
 	fmt.Printf("\n%s\n\n", msgTopFastestEndpoints(*flagSettings.URL))
 	fmt.Printf("%-16s %-7s %-8s %-14s %-8s %s\n",

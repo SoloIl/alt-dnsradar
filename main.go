@@ -20,12 +20,21 @@ func main() {
 		}
 	}()
 
-	ctx, stop := signal.NotifyContext(
-		context.Background(),
-		os.Interrupt,
-		syscall.SIGTERM,
-	)
-	defer stop()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigCh := make(chan os.Signal, 2)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(sigCh)
+
+	go func() {
+		<-sigCh
+		_, _ = fmt.Fprintln(os.Stderr, msgInterrupted())
+		cancel()
+
+		<-sigCh
+		os.Exit(130)
+	}()
 
 	var cleanErr error
 	*flagSettings.URL, cleanErr = cleanURL(*flagSettings.URL)
@@ -36,7 +45,10 @@ func main() {
 	tracef("%s v%s\n", PROGRAMNAME, VERSION)
 	tracef("Processing URL '%s'\n", *flagSettings.URL)
 
-	diagnoseDNS(*flagSettings.URL)
+	diagnoseDNS(ctx, *flagSettings.URL)
+	if ctx.Err() != nil {
+		return
+	}
 
 	resolver, err := createResolver()
 	check(err)
@@ -50,6 +62,9 @@ func main() {
 	tracef("Total ECS subnets: %d\n", len(subnets))
 
 	rawReplies := sendRequests(ctx, subnets, resolver, len(subnets))
+	if ctx.Err() != nil {
+		return
+	}
 	unique := removeDuplicates(rawReplies)
 
 	fmt.Printf("\n%s\n", msgSuccessfulDNSReplies(successfulDNS))
@@ -63,7 +78,20 @@ func main() {
 		tracef("POP clusters discovered: %d\n", len(clusters))
 	}
 
-	results := validateIPs(unique)
+	if len(unique) == 0 {
+		fmt.Printf("\n%s\n", msgNoEndpointsDiscovered())
+
+		if *flagSettings.ShowAll {
+			printAll(unique)
+		}
+
+		return
+	}
+
+	results := validateIPs(ctx, unique)
+	if ctx.Err() != nil {
+		return
+	}
 
 	var alive []IPResult
 	for _, r := range results {
@@ -73,7 +101,7 @@ func main() {
 	}
 
 	sortResults(alive)
-	printGeoTable(alive, 5)
+	printGeoTable(ctx, alive, 5)
 
 	if *flagSettings.ShowAll {
 		printAll(unique)

@@ -61,10 +61,16 @@ func sendRequests(ctx context.Context, subnets []string, u upstream.Upstream, to
 		),
 	)
 
+	go func() {
+		<-ctx.Done()
+		bar.Abort(true)
+	}()
+
 	for _, subnet := range subnets {
 		select {
 		case <-ctx.Done():
 			wg.Wait()
+			bar.Abort(true)
 			p.Wait()
 			return rawReplies
 		default:
@@ -90,6 +96,9 @@ func sendRequests(ctx context.Context, subnets []string, u upstream.Upstream, to
 	}
 
 	wg.Wait()
+	if ctx.Err() != nil {
+		bar.Abort(true)
+	}
 	p.Wait()
 
 	return rawReplies

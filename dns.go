@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"slices"
@@ -11,7 +12,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func diagnoseDNS(domain string) {
+func diagnoseDNS(ctx context.Context, domain string) {
 	fmt.Println(msgDNSDiagnosticsTitle())
 	fmt.Println("----------------------------")
 
@@ -20,7 +21,14 @@ func diagnoseDNS(domain string) {
 	googleDoH := lookupGoogleDoH(domain)
 	cloudflareDoH := lookupCloudflareDoH(domain)
 
-	rows := buildInitialDiagRows(domain, local, udp, googleDoH, cloudflareDoH)
+	if ctx.Err() != nil {
+		return
+	}
+
+	rows := buildInitialDiagRows(ctx, domain, local, udp, googleDoH, cloudflareDoH)
+	if ctx.Err() != nil {
+		return
+	}
 	printInitialDiagTable(rows)
 
 	comparisons := []DNSComparison{
@@ -29,6 +37,9 @@ func diagnoseDNS(domain string) {
 		compareIPSetsDetailed("Cloudflare DoH", cloudflareDoH, "Google DoH", googleDoH),
 	}
 
+	if ctx.Err() != nil {
+		return
+	}
 	printDNSSummary(comparisons)
 
 	fmt.Println("")
@@ -151,7 +162,7 @@ func compareIPSetsDetailed(leftName string, left []string, rightName string, rig
 	}
 }
 
-func buildInitialDiagRows(domain string, local []string, udp []string, googleDoH []string, cloudflareDoH []string) []InitialDiagRow {
+func buildInitialDiagRows(ctx context.Context, domain string, local []string, udp []string, googleDoH []string, cloudflareDoH []string) []InitialDiagRow {
 	sources := []struct {
 		name string
 		ips  []string
@@ -184,7 +195,7 @@ func buildInitialDiagRows(domain string, local []string, udp []string, googleDoH
 	slices.Sort(ipsToProbe)
 
 	printInitialProbeStatus(len(ipsToProbe))
-	probeCache := probeUniqueEndpointsParallel(ipsToProbe, domain, requestTimeout(), 4)
+	probeCache := probeUniqueEndpointsParallel(ctx, ipsToProbe, domain, requestTimeout(), 4)
 
 	var rows []InitialDiagRow
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"sort"
 	"sync"
 	"time"
@@ -9,7 +10,11 @@ import (
 	"github.com/vbauerster/mpb/v8/decor"
 )
 
-func validateIPs(ips []string) []IPResult {
+func validateIPs(ctx context.Context, ips []string) []IPResult {
+	if len(ips) == 0 {
+		return nil
+	}
+
 	timeout := requestTimeout()
 	workers := 20
 	probes := 3
@@ -31,56 +36,88 @@ func validateIPs(ips []string) []IPResult {
 		),
 	)
 
+	go func() {
+		<-ctx.Done()
+		bar.Abort(true)
+	}()
+
 	for w := 0; w < workers; w++ {
 		wg.Add(1)
 
 		go func() {
 			defer wg.Done()
 
-			for ip := range jobs {
-				lat := measureMedianLatency(ip, probes, timeout)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case ip, ok := <-jobs:
+					if !ok {
+						return
+					}
 
-				if lat == 0 {
-					results <- IPResult{
-						IP:    ip,
-						Alive: false,
+					lat := measureMedianLatency(ctx, ip, probes, timeout)
+
+					if lat == 0 {
+						results <- IPResult{
+							IP:    ip,
+							Alive: false,
+						}
+					} else {
+						results <- IPResult{
+							IP:         ip,
+							TCPLatency: lat,
+							Alive:      true,
+						}
 					}
-				} else {
-					results <- IPResult{
-						IP:         ip,
-						TCPLatency: lat,
-						Alive:      true,
-					}
+
+					bar.Increment()
 				}
-
-				bar.Increment()
 			}
 		}()
 	}
 
 	go func() {
+		defer close(jobs)
+
 		for _, ip := range ips {
-			jobs <- ip
+			select {
+			case <-ctx.Done():
+				return
+			case jobs <- ip:
+			}
 		}
-		close(jobs)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(results)
 	}()
 
 	var out []IPResult
-	for i := 0; i < len(ips); i++ {
-		out = append(out, <-results)
+	for result := range results {
+		out = append(out, result)
 	}
 
-	wg.Wait()
+	if ctx.Err() != nil {
+		bar.Abort(true)
+	}
 	p.Wait()
 
 	return out
 }
 
-func measureMedianLatency(ip string, probes int, timeout time.Duration) time.Duration {
+func measureMedianLatency(ctx context.Context, ip string, probes int, timeout time.Duration) time.Duration {
 	var samples []time.Duration
 
 	for i := 0; i < probes; i++ {
-		latency, err := measureTCPConnect(ip, timeout)
+		select {
+		case <-ctx.Done():
+			return 0
+		default:
+		}
+
+		latency, err := measureTCPConnect(ctx, ip, timeout)
 		if err != nil {
 			continue
 		}

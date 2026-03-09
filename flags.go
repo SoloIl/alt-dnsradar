@@ -58,7 +58,7 @@ func initFlags() {
 		msgLangFlag(),
 	)
 
-	domain, reorderedArgs := splitArgs(os.Args[1:])
+	domain, extras, reorderedArgs := splitArgs(os.Args[1:])
 	flag.CommandLine.Parse(reorderedArgs)
 
 	if domain == "" {
@@ -66,11 +66,18 @@ func initFlags() {
 		os.Exit(1)
 	}
 
+	if len(extras) > 0 {
+		_, _ = fmt.Fprint(os.Stderr, msgUnexpectedArgs(extras))
+		printUsage()
+		os.Exit(1)
+	}
+
 	flagSettings.URL = &domain
 }
 
-func splitArgs(args []string) (string, []string) {
+func splitArgs(args []string) (string, []string, []string) {
 	var domain string
+	var extras []string
 	var out []string
 
 	for i := 0; i < len(args); i++ {
@@ -88,10 +95,12 @@ func splitArgs(args []string) (string, []string) {
 
 		if domain == "" {
 			domain = arg
+		} else {
+			extras = append(extras, arg)
 		}
 	}
 
-	return domain, out
+	return domain, extras, out
 }
 
 func flagConsumesValue(arg string) bool {
@@ -108,12 +117,14 @@ func flagConsumesValue(arg string) bool {
 }
 
 func printUsage() {
+	binary := thisFilename()
+
 	fmt.Println(msgUsageTitle())
-	fmt.Println("  dnsradar <domain> [flags]")
+	fmt.Printf("  %s <domain> [flags]\n", binary)
 	fmt.Println("")
 	fmt.Println(msgExamplesTitle())
-	fmt.Println(msgRecommendedExample())
-	fmt.Println(msgSecondaryExample())
+	fmt.Println(msgRecommendedExample(binary))
+	fmt.Println(msgSecondaryExample(binary))
 	fmt.Println("")
 	fmt.Println(msgDefaultBehaviorTitle())
 	for _, line := range msgDefaultBehaviorLines() {

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 func currentLang() string {
@@ -41,18 +42,18 @@ func msgExamplesTitle() string {
 	return "Examples:"
 }
 
-func msgRecommendedExample() string {
+func msgRecommendedExample(binary string) string {
 	if currentLang() == "ru" {
-		return "  dnsradar instagram.com (рекомендуемый вариант, по умолчанию)"
+		return fmt.Sprintf("  %s example.com (рекомендуемый вариант, по умолчанию)", binary)
 	}
-	return "  dnsradar instagram.com (recommended, default)"
+	return fmt.Sprintf("  %s example.com (recommended, default)", binary)
 }
 
-func msgSecondaryExample() string {
+func msgSecondaryExample(binary string) string {
 	if currentLang() == "ru" {
-		return "  dnsradar youtube.com --all"
+		return fmt.Sprintf("  %s youtube.com --all", binary)
 	}
-	return "  dnsradar youtube.com --all"
+	return fmt.Sprintf("  %s youtube.com --all", binary)
 }
 
 func msgDefaultBehaviorTitle() string {
@@ -71,6 +72,7 @@ func msgDefaultBehaviorLines() []string {
 			"будет выполнено ECS-сканирование по 540 публичным подсетям",
 			"измерение задержки (latency) выполняется в 20 потоков",
 			"для 5 самых быстрых endpoint выполняются TLS-диагностика и заполняются метаданные от ipinfo.io (лимит ipinfo.io: 1000 запросов в день)",
+			"для корректной работы отключите программы, влияющие на конечный трафик: прокси, VPN и анти-DPI утилиты",
 		}
 	}
 
@@ -81,6 +83,7 @@ func msgDefaultBehaviorLines() []string {
 		"runs ECS scanning across 540 public subnets",
 		"measures latency with 20 worker threads",
 		"runs TLS diagnostics and fills ipinfo.io metadata for the top 5 fastest endpoints (ipinfo.io limit: 1000 requests per day)",
+		"for reliable results, disable software that changes end-user traffic: proxies, VPNs, and anti-DPI tools",
 	}
 }
 
@@ -333,6 +336,20 @@ func msgErrorClosingLog(err error) string {
 	return fmt.Sprintf("Error closing log: %v\n", err)
 }
 
+func msgInterrupted() string {
+	if currentLang() == "ru" {
+		return "Получен сигнал прерывания, остановка..."
+	}
+	return "Interrupt received, stopping..."
+}
+
+func msgUnexpectedArgs(args []string) string {
+	if currentLang() == "ru" {
+		return fmt.Sprintf("\nОшибка: ожидается только один домен, лишние аргументы: %s\n\n", strings.Join(args, ", "))
+	}
+	return fmt.Sprintf("\nError: expected exactly one domain, extra arguments: %s\n\n", strings.Join(args, ", "))
+}
+
 func msgStartingECSScan() string {
 	if currentLang() == "ru" {
 		return "Запуск ECS-сканирования"
@@ -380,6 +397,13 @@ func msgNoReachableEdges() string {
 		return "Доступные endpoint не найдены"
 	}
 	return "No reachable edges found"
+}
+
+func msgNoEndpointsDiscovered() string {
+	if currentLang() == "ru" {
+		return "ECS-сканирование не вернуло ни одного endpoint"
+	}
+	return "ECS scan did not return any endpoints"
 }
 
 func msgPreparingTopEndpointTable(domain string) string {
