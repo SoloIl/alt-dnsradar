@@ -149,21 +149,33 @@ go build -o alt-dnsradar.exe .
 ### Linux / macOS
 
 1. Распакуйте архив.
-2. Откройте terminal в этой папке.
-3. Запустите:
+2. Откройте terminal.
+3. Либо перейдите в папку с программой и запустите:
 
 ```bash
 ./alt-dnsradar example.com
 ```
 
+4. Либо перетащите файл `alt-dnsradar` в окно терминала, чтобы подставился полный путь, и после него добавьте домен, например:
+
+```bash
+/полный/путь/к/alt-dnsradar example.com
+```
+
 ### Windows
 
 1. Распакуйте архив.
-2. Откройте PowerShell в этой папке.
-3. Запустите:
+2. Откройте PowerShell.
+3. Либо перейдите в папку с программой и запустите:
 
 ```powershell
 .\alt-dnsradar.exe example.com
+```
+
+4. Либо перетащите `alt-dnsradar.exe` в окно PowerShell, чтобы подставился полный путь, и после него добавьте домен, например:
+
+```powershell
+C:\путь\к\alt-dnsradar.exe example.com
 ```
 
 ## Использование

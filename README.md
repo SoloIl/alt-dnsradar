@@ -149,21 +149,33 @@ If you already downloaded a prebuilt package:
 ### Linux / macOS
 
 1. Unpack the archive.
-2. Open a terminal in that folder.
-3. Run:
+2. Open a terminal.
+3. Either change into that folder and run:
 
 ```bash
 ./alt-dnsradar example.com
 ```
 
+4. Or drag the `alt-dnsradar` file into the terminal window to insert its full path, then add a domain, for example:
+
+```bash
+/full/path/to/alt-dnsradar example.com
+```
+
 ### Windows
 
 1. Unpack the archive.
-2. Open PowerShell in that folder.
-3. Run:
+2. Open PowerShell.
+3. Either change into that folder and run:
 
 ```powershell
 .\alt-dnsradar.exe example.com
+```
+
+4. Or drag `alt-dnsradar.exe` into the PowerShell window to insert its full path, then add a domain, for example:
+
+```powershell
+C:\path\to\alt-dnsradar.exe example.com
 ```
 
 ## Usage
