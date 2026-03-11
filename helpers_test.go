@@ -290,3 +290,43 @@ func TestSplitArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestLookupWithRetry(t *testing.T) {
+	t.Run("returns value from second attempt", func(t *testing.T) {
+		calls := 0
+
+		got := lookupWithRetry(func() []string {
+			calls++
+			if calls == 1 {
+				return nil
+			}
+
+			return []string{"8.8.8.8"}
+		})
+
+		if calls != 2 {
+			t.Fatalf("lookupWithRetry() calls = %d, want 2", calls)
+		}
+
+		if !reflect.DeepEqual(got, []string{"8.8.8.8"}) {
+			t.Fatalf("lookupWithRetry() = %v, want %v", got, []string{"8.8.8.8"})
+		}
+	})
+
+	t.Run("returns nil after all attempts fail", func(t *testing.T) {
+		calls := 0
+
+		got := lookupWithRetry(func() []string {
+			calls++
+			return nil
+		})
+
+		if calls != dnsDiagnosticAttempts {
+			t.Fatalf("lookupWithRetry() calls = %d, want %d", calls, dnsDiagnosticAttempts)
+		}
+
+		if got != nil {
+			t.Fatalf("lookupWithRetry() = %v, want nil", got)
+		}
+	})
+}

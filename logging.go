@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 )
+
+var quietUpstreamLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
 func createLog(logfile string, silent bool) error {
 	errWriter := io.Writer(os.Stderr)

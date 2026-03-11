@@ -172,13 +172,13 @@ func printGeoTable(ctx context.Context, results []IPResult, top int) {
 	geo := buildGeoResults(ctx, results, top)
 
 	fmt.Printf("\n%s\n\n", msgTopFastestEndpoints(*flagSettings.URL))
-	fmt.Printf("%-16s %-7s %-8s %-14s %-8s %s\n",
+	fmt.Printf("%-16s %-9s %-8s %-14s %-8s %s\n",
 		"IP", "TCP", "TLS", "CDN", "ASN", "LOCATION")
 	fmt.Println(strings.Repeat("-", 80))
 
 	for _, g := range geo {
 		location := fmt.Sprintf("%-4s %s", g.Country, g.City)
-		fmt.Printf("%-16s %-7s %-8s %-14s %-8s %s\n",
+		fmt.Printf("%-16s %s %s %-14s %-8s %s\n",
 			g.IP,
 			colorizeTCPLabel(fmt.Sprintf("%dms", g.Latency)),
 			colorizeTLSStatus(g.TLS),

@@ -32,24 +32,33 @@ func colorize(s string, color string) string {
 	return fmt.Sprintf("%s%s%s", color, s, ansiReset)
 }
 
+func padAndColorize(s string, width int, color string) string {
+	padded := fmt.Sprintf("%-*s", width, s)
+	if color == "" {
+		return padded
+	}
+
+	return colorize(padded, color)
+}
+
 func colorizeTCPLabel(label string) string {
 	switch label {
 	case "BLOCKED":
-		return colorize(label, ansiRed)
+		return padAndColorize(label, 9, ansiRed)
 	case "-":
-		return label
+		return padAndColorize(label, 9, "")
 	default:
-		return colorize(label, ansiGreen)
+		return padAndColorize(label, 9, ansiGreen)
 	}
 }
 
 func colorizeTLSStatus(status TLSStatus) string {
 	switch status {
 	case TLSStatusOK:
-		return colorize(string(status), ansiGreen)
+		return padAndColorize(string(status), 8, ansiGreen)
 	case TLSStatusFail, TLSStatusTimeout:
-		return colorize(string(status), ansiRed)
+		return padAndColorize(string(status), 8, ansiRed)
 	default:
-		return string(status)
+		return padAndColorize(string(status), 8, "")
 	}
 }

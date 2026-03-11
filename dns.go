@@ -12,6 +12,8 @@ import (
 	"github.com/miekg/dns"
 )
 
+const dnsDiagnosticAttempts = 2
+
 func diagnoseDNS(ctx context.Context, domain string) {
 	fmt.Println(msgDNSDiagnosticsTitle())
 	fmt.Println("----------------------------")
@@ -64,23 +66,25 @@ func lookupLocalDNS(domain string) []string {
 }
 
 func lookupGoogleUDP(domain string) []string {
-	c := dns.Client{Timeout: requestTimeout()}
-	m := dns.Msg{}
-	m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+	return lookupWithRetry(func() []string {
+		c := dns.Client{Timeout: requestTimeout()}
+		m := dns.Msg{}
+		m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
 
-	r, _, err := c.Exchange(&m, "8.8.8.8:53")
-	if err != nil {
-		return nil
-	}
-
-	var ips []string
-	for _, ans := range r.Answer {
-		if a, ok := ans.(*dns.A); ok {
-			ips = append(ips, a.A.String())
+		r, _, err := c.Exchange(&m, "8.8.8.8:53")
+		if err != nil {
+			return nil
 		}
-	}
 
-	return normalizeSet(ips)
+		var ips []string
+		for _, ans := range r.Answer {
+			if a, ok := ans.(*dns.A); ok {
+				ips = append(ips, a.A.String())
+			}
+		}
+
+		return normalizeSet(ips)
+	})
 }
 
 func lookupGoogleDoH(domain string) []string {
@@ -92,31 +96,47 @@ func lookupCloudflareDoH(domain string) []string {
 }
 
 func lookupDoH(domain string, endpoint string) []string {
-	u, err := upstream.AddressToUpstream(
-		endpoint,
-		&upstream.Options{Timeout: requestTimeout()},
-	)
-	if err != nil {
-		return nil
-	}
-	defer u.Close()
+	return lookupWithRetry(func() []string {
+		u, err := upstream.AddressToUpstream(
+			endpoint,
+			&upstream.Options{
+				Timeout: requestTimeout(),
+				Logger:  quietUpstreamLogger,
+			},
+		)
+		if err != nil {
+			return nil
+		}
+		defer u.Close()
 
-	req := dns.Msg{}
-	req.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+		req := dns.Msg{}
+		req.SetQuestion(dns.Fqdn(domain), dns.TypeA)
 
-	resp, err := u.Exchange(&req)
-	if err != nil {
-		return nil
-	}
+		resp, err := u.Exchange(&req)
+		if err != nil {
+			return nil
+		}
 
-	var ips []string
-	for _, ans := range resp.Answer {
-		if a, ok := ans.(*dns.A); ok {
-			ips = append(ips, a.A.String())
+		var ips []string
+		for _, ans := range resp.Answer {
+			if a, ok := ans.(*dns.A); ok {
+				ips = append(ips, a.A.String())
+			}
+		}
+
+		return normalizeSet(ips)
+	})
+}
+
+func lookupWithRetry(fn func() []string) []string {
+	for attempt := 0; attempt < dnsDiagnosticAttempts; attempt++ {
+		ips := normalizeSet(fn())
+		if len(ips) > 0 {
+			return ips
 		}
 	}
 
-	return normalizeSet(ips)
+	return nil
 }
 
 func compareIPSetsDetailed(leftName string, left []string, rightName string, right []string) DNSComparison {
@@ -241,7 +261,7 @@ func printInitialDiagTable(rows []InitialDiagRow) {
 
 	for _, row := range rows {
 		fmt.Printf(
-			"%-17s %-16s %-9s %-8s %s\n",
+			"%-17s %-16s %s %s %s\n",
 			row.Source,
 			row.IP,
 			colorizeTCPLabel(initialTCPLabel(row)),

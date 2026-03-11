@@ -31,6 +31,7 @@ func generateSubnets() []string {
 func createResolver() (upstream.Upstream, error) {
 	o := &upstream.Options{
 		Timeout: requestTimeout(),
+		Logger:  quietUpstreamLogger,
 	}
 
 	u, err := upstream.AddressToUpstream(*flagSettings.Resolver, o)
