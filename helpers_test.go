@@ -60,6 +60,28 @@ func TestRemoveDuplicates(t *testing.T) {
 	}
 }
 
+func TestECSReplyProvenance(t *testing.T) {
+	replies := []ECSReply{
+		{IP: "57.144.249.32", Subnet: "80.20.0.0/16"},
+		{IP: "57.144.245.32", Subnet: "90.10.0.0/16"},
+		{IP: "57.144.249.32", Subnet: "70.30.0.0/16"},
+		{IP: "57.144.249.32", Subnet: "80.20.0.0/16"},
+	}
+
+	wantIPs := []string{"57.144.249.32", "57.144.245.32"}
+	if got := uniqueIPsFromECSReplies(replies); !reflect.DeepEqual(got, wantIPs) {
+		t.Fatalf("uniqueIPsFromECSReplies() = %v, want %v", got, wantIPs)
+	}
+
+	wantSubnets := map[string][]string{
+		"57.144.249.32": {"70.30.0.0/16", "80.20.0.0/16"},
+		"57.144.245.32": {"90.10.0.0/16"},
+	}
+	if got := ecsSubnetsByIP(replies); !reflect.DeepEqual(got, wantSubnets) {
+		t.Fatalf("ecsSubnetsByIP() = %v, want %v", got, wantSubnets)
+	}
+}
+
 func TestNormalizeSet(t *testing.T) {
 	in := []string{"8.8.8.8", "1.1.1.1", "8.8.8.8", "9.9.9.9"}
 	want := []string{"1.1.1.1", "8.8.8.8", "9.9.9.9"}

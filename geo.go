@@ -23,13 +23,14 @@ type IPInfo struct {
 }
 
 type GeoResult struct {
-	IP      string
-	Latency int64
-	TLS     TLSStatus
-	City    string
-	Country string
-	ASN     string
-	CDN     string
+	IP         string
+	ECSSubnets []string
+	Latency    int64
+	TLS        TLSStatus
+	City       string
+	Country    string
+	ASN        string
+	CDN        string
 }
 
 func lookupGeo(ip string) (*IPInfo, error) {
@@ -104,13 +105,14 @@ func buildGeoResults(ctx context.Context, results []IPResult, top int) []GeoResu
 			}
 
 			geo = append(geo, GeoResult{
-				IP:      r.IP,
-				Latency: r.TCPLatency.Milliseconds(),
-				TLS:     TLSStatusSkip,
-				City:    "-",
-				Country: "-",
-				ASN:     "-",
-				CDN:     "-",
+				IP:         r.IP,
+				ECSSubnets: r.ECSSubnets,
+				Latency:    r.TCPLatency.Milliseconds(),
+				TLS:        TLSStatusSkip,
+				City:       "-",
+				Country:    "-",
+				ASN:        "-",
+				CDN:        "-",
 			})
 			continue
 		}
@@ -119,13 +121,14 @@ func buildGeoResults(ctx context.Context, results []IPResult, top int) []GeoResu
 		cdn := detectCDN(info.Org)
 
 		geo = append(geo, GeoResult{
-			IP:      r.IP,
-			Latency: r.TCPLatency.Milliseconds(),
-			TLS:     TLSStatusSkip,
-			City:    valueOrDash(info.City),
-			Country: valueOrDash(info.Country),
-			ASN:     asn,
-			CDN:     cdn,
+			IP:         r.IP,
+			ECSSubnets: r.ECSSubnets,
+			Latency:    r.TCPLatency.Milliseconds(),
+			TLS:        TLSStatusSkip,
+			City:       valueOrDash(info.City),
+			Country:    valueOrDash(info.Country),
+			ASN:        asn,
+			CDN:        cdn,
 		})
 	}
 
@@ -186,6 +189,40 @@ func printGeoTable(ctx context.Context, results []IPResult, top int) {
 			g.ASN,
 			location,
 		)
+	}
+
+	printTopEndpointECSMappings(geo, *flagSettings.Verbose)
+}
+
+func printTopEndpointECSMappings(results []GeoResult, showAll bool) {
+	const defaultPrefixLimit = 5
+
+	fmt.Printf("\nECS prefixes for top endpoints\n\n")
+	fmt.Printf("%-16s %s\n", "IP", "ECS PREFIX")
+	fmt.Println(strings.Repeat("-", 36))
+
+	for _, result := range results {
+		if len(result.ECSSubnets) == 0 {
+			fmt.Printf("%-16s %s\n", result.IP, "-")
+			continue
+		}
+
+		subnets := result.ECSSubnets
+		if !showAll && len(subnets) > defaultPrefixLimit {
+			subnets = subnets[:defaultPrefixLimit]
+		}
+
+		for i, subnet := range subnets {
+			ip := ""
+			if i == 0 {
+				ip = result.IP
+			}
+			fmt.Printf("%-16s %s\n", ip, subnet)
+		}
+
+		if remaining := len(result.ECSSubnets) - len(subnets); remaining > 0 {
+			fmt.Printf("%-16s ... %d more (use -v for all)\n", "", remaining)
+		}
 	}
 }
 

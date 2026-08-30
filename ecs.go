@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sort"
 	"sync"
 
 	"github.com/AdguardTeam/dnsproxy/upstream"
@@ -42,13 +43,13 @@ func createResolver() (upstream.Upstream, error) {
 	return u, nil
 }
 
-func sendRequests(ctx context.Context, subnets []string, u upstream.Upstream, total int) []string {
+func sendRequests(ctx context.Context, subnets []string, u upstream.Upstream, total int) []ECSReply {
 	var wg sync.WaitGroup
 	threads := 20
 	semaphore := make(chan struct{}, threads)
 
 	var mu sync.Mutex
-	var rawReplies []string
+	var rawReplies []ECSReply
 
 	p := mpb.New(mpb.WithWidth(50))
 	bar := p.New(int64(total),
@@ -105,8 +106,8 @@ func sendRequests(ctx context.Context, subnets []string, u upstream.Upstream, to
 	return rawReplies
 }
 
-func dnsLookup(subnet string, u upstream.Upstream) []string {
-	var rawReply []string
+func dnsLookup(subnet string, u upstream.Upstream) []ECSReply {
+	var rawReply []ECSReply
 
 	q := dns.Question{
 		Name:   dns.Fqdn(*flagSettings.URL),
@@ -149,9 +150,43 @@ func dnsLookup(subnet string, u upstream.Upstream) []string {
 
 	for _, ans := range reply.Answer {
 		if a, ok := ans.(*dns.A); ok {
-			rawReply = append(rawReply, a.A.String())
+			rawReply = append(rawReply, ECSReply{
+				IP:     a.A.String(),
+				Subnet: subnet,
+			})
 		}
 	}
 
 	return rawReply
+}
+
+func uniqueIPsFromECSReplies(replies []ECSReply) []string {
+	ips := make([]string, 0, len(replies))
+	for _, reply := range replies {
+		ips = append(ips, reply.IP)
+	}
+
+	return removeDuplicates(ips)
+}
+
+func ecsSubnetsByIP(replies []ECSReply) map[string][]string {
+	sets := make(map[string]map[string]struct{})
+	for _, reply := range replies {
+		if _, ok := sets[reply.IP]; !ok {
+			sets[reply.IP] = make(map[string]struct{})
+		}
+		sets[reply.IP][reply.Subnet] = struct{}{}
+	}
+
+	result := make(map[string][]string, len(sets))
+	for ip, subnetSet := range sets {
+		subnets := make([]string, 0, len(subnetSet))
+		for subnet := range subnetSet {
+			subnets = append(subnets, subnet)
+		}
+		sort.Strings(subnets)
+		result[ip] = subnets
+	}
+
+	return result
 }
