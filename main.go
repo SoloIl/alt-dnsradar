@@ -65,7 +65,8 @@ func main() {
 	if ctx.Err() != nil {
 		return
 	}
-	unique := removeDuplicates(rawReplies)
+	unique := uniqueIPsFromECSReplies(rawReplies)
+	ecsByIP := ecsSubnetsByIP(rawReplies)
 
 	fmt.Printf("\n%s\n", msgSuccessfulDNSReplies(successfulDNS))
 	fmt.Printf("%s\n\n", msgUniqueIPDiscovered(len(unique)))
@@ -91,6 +92,9 @@ func main() {
 	results := validateIPs(ctx, unique)
 	if ctx.Err() != nil {
 		return
+	}
+	for i := range results {
+		results[i].ECSSubnets = ecsByIP[results[i].IP]
 	}
 
 	var alive []IPResult

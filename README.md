@@ -18,6 +18,8 @@ This makes the tool useful for understanding how a platform distributes its infr
   - Google DNS over HTTPS
   - Cloudflare DNS over HTTPS
 - ECS scanning across 540 public subnets
+- ECS-to-endpoint provenance for top results; `-v` prints every matching ECS
+  prefix without additional geo lookups
 - Discovery of additional IP addresses returned by DNS when queried from different client network locations
 - TCP latency measurement with:
   - 3 probes per IP
@@ -33,16 +35,17 @@ This makes the tool useful for understanding how a platform distributes its infr
 ## How It Works
 
 1. The program runs DNS diagnostics and compares answers from Local DNS, Google UDP, Google DoH, and Cloudflare DoH.
-2. It performs an ECS scan across 540 public subnets and aggregates all unique IPs returned by DNS.
+2. It performs an ECS scan across 540 public subnets, retaining which ECS prefixes returned each IP.
 3. It measures TCP latency to each discovered IP with 3 probes and uses the median as the final ranking value.
 4. It enriches the fastest endpoints with metadata from `ipinfo.io`.
-5. It prints the fastest reachable endpoints in a compact table.
+5. It prints the fastest reachable endpoints and matching ECS prefixes.
 
 ## Design Constraints
 
 - TCP connect latency is the only ranking metric.
 - TLS is diagnostic only and is never used for ranking.
 - Geo metadata is fetched only for the top results.
+- ECS prefix reporting reuses DNS scan data and does not call `ipinfo.io`.
 - The tool is designed to stay lightweight and portable.
 
 ## Download Prebuilt Packages
@@ -286,6 +289,8 @@ Actual output depends on the domain, network conditions, resolver behavior, and 
 ## Notes
 
 - `ipinfo.io` metadata requests are limited by the external service. The current workflow queries only the top 5 fastest endpoints to reduce usage (1000 requests per day).
+- Each normal run therefore makes at most 5 `ipinfo.io` requests. Using `-v`
+  changes only ECS output verbosity and does not increase that number.
 - DNS answers for multi-endpoint domains may differ between resolvers without implying manipulation.
 - Some networks or resolvers may block ECS behavior or return limited results.
 - For reliable results, disable software that changes end-user traffic: proxies, VPNs, and anti-DPI tools.
@@ -293,6 +298,8 @@ Actual output depends on the domain, network conditions, resolver behavior, and 
 ## Limitations
 
 - The ECS scan uses a coarse grid and may not discover all possible endpoints.
+- An ECS prefix that returns an endpoint once is a candidate, not a guarantee;
+  CDN mappings can change and should be verified repeatedly before deployment.
 - Metadata accuracy depends on the `ipinfo.io` database.
 - TLS diagnostics may be affected by middleboxes or DPI systems and should be interpreted as diagnostics, not ranking input.
 

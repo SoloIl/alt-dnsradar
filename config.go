@@ -25,8 +25,14 @@ type Settings struct {
 
 type IPResult struct {
 	IP         string
+	ECSSubnets []string
 	TCPLatency time.Duration
 	Alive      bool
+}
+
+type ECSReply struct {
+	IP     string
+	Subnet string
 }
 
 type SetRelation int
